@@ -1,0 +1,142 @@
+package pl.dmcs.mww.controller;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import pl.dmcs.mww.model.Grade;
+import pl.dmcs.mww.model.Student;
+import pl.dmcs.mww.model.request.AddGradeRequest;
+import pl.dmcs.mww.model.request.AddStudentRequest;
+import pl.dmcs.mww.repository.StudentRepository;
+
+import java.util.List;
+
+@RestController
+@CrossOrigin(origins = "http://localhost:4200")
+@RequestMapping("/api/students")
+public class StudentController {
+
+    private StudentRepository studentRepository;
+
+    @Autowired public StudentController(StudentRepository studentRepository) {
+        this.studentRepository = studentRepository;
+    }
+
+    @RequestMapping(method = RequestMethod.GET)
+    public List<Student> findAllStudents() {
+        System.out.println("GET request");
+        return studentRepository.findAll();
+    }
+
+    @RequestMapping(method = RequestMethod.POST)
+    public Student addStudent(@RequestBody AddStudentRequest addStudentRequest) {
+        System.out.println("POST request");
+        Student student = new Student();
+        student.setName(addStudentRequest.getName());
+        student.setSurname(addStudentRequest.getSurname());
+        student.setIndexNr(addStudentRequest.getIndexNr());
+        return studentRepository.save(student);
+    }
+
+    @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
+    public Student updateStudent(@PathVariable("id") long id, @RequestBody Student s) {
+        System.out.println("PUT request");
+        Student student = studentRepository.findById(id);
+        if (student == null) {
+            System.out.println("Student not found! Creating new student");
+            Student n = new Student();
+            n.setName(s.getName());
+            n.setSurname(s.getSurname());
+            n.setIndexNr(s.getIndexNr());
+            n.setGrades(s.getGrades());
+            return studentRepository.save(n);
+        }
+        student.setName(s.getName());
+        student.setSurname(s.getSurname());
+        student.setGrades(s.getGrades());
+        return student;
+    }
+
+    @RequestMapping(value="/{id}", method = RequestMethod.DELETE)
+    public ResponseEntity<Student> deleteStudent (@PathVariable("id") long id) {
+        System.out.println("DELETE request");
+        Student student = studentRepository.findById(id);
+        if (student == null) {
+            System.out.println("Student not found!");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        studentRepository.deleteById(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @RequestMapping(value="/{id}", method = RequestMethod.GET)
+    public Student getStudent(@PathVariable("id") long id){
+        return studentRepository.findById(id);
+    }
+
+    @RequestMapping(value="/{id}/grades", method = RequestMethod.GET)
+    public List<Grade> getGrades(@PathVariable("id") long id){
+        return studentRepository.findById(id).getGrades();
+    }
+    @RequestMapping(value="/{id}/grades", method = RequestMethod.POST)
+    public Grade addGrade(@PathVariable("id") long id, @RequestBody AddGradeRequest g) {
+        System.out.println("POST grade request");
+        Grade grade = new Grade();
+        grade.setGrade(g.getGrade());
+        grade.setSubject(g.getSubject());
+        grade.setWeight(g.getWeight());
+        Student s = studentRepository.findById(id);
+        s.getGrades().add(grade);
+        studentRepository.save(s);
+        return grade;
+    }
+
+    @RequestMapping(value="/{id}/grades/{gradeId}", method = RequestMethod.PUT)
+    public ResponseEntity<Grade> updateGrade(@PathVariable("id") long id, @PathVariable("gradeId") long gradeId, @RequestBody AddGradeRequest g) {
+        System.out.println("PUT grade request");
+        Student student = studentRepository.findById(id);
+        if (student == null) {
+            System.out.println("Student not found!");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        if (student.getGrades().size() == 0) {
+            Grade grade = new Grade();
+            grade.setGrade(g.getGrade());
+            grade.setSubject(g.getSubject());
+            grade.setWeight(g.getWeight());
+            Student s = studentRepository.findById(id);
+            s.getGrades().add(grade);
+            studentRepository.save(s);
+            return new ResponseEntity<>(grade, HttpStatus.CREATED);
+        }
+        for (Grade grade : student.getGrades()) {
+            if (grade.getId() == gradeId) {
+                grade.setGrade(g.getGrade());
+                grade.setWeight(g.getWeight());
+                grade.setSubject(g.getSubject());
+                studentRepository.save(student);
+                return new ResponseEntity<>(grade, HttpStatus.OK);
+            }
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @RequestMapping(value="/{id}/grades/{gradeId}", method = RequestMethod.DELETE)
+    public ResponseEntity<Grade> deleteGrade (@PathVariable("id") long id, @PathVariable("gradeId") long gradeId) {
+        System.out.println("DELETE grade request");
+        Student student = studentRepository.findById(id);
+        if (student == null) {
+            System.out.println("Student not found!");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        for (Grade grade : student.getGrades()) {
+            if (grade.getId() == gradeId) {
+                student.getGrades().remove(grade);
+                studentRepository.save(student);
+                return new ResponseEntity<>(grade, HttpStatus.NO_CONTENT);
+            }
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+}
