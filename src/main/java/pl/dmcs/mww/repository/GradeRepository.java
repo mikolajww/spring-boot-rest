@@ -9,5 +9,5 @@ import pl.dmcs.mww.model.Student;
 @Repository
 @CrossOrigin(origins = "http://localhost:4200", maxAge = 3600)
 public interface GradeRepository extends JpaRepository<Grade,Long> {
-    Student findById(long id);
+    Grade findById(long id);
 }
