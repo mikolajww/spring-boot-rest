@@ -1,6 +1,7 @@
 package pl.dmcs.mww.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,6 +25,7 @@ import pl.dmcs.mww.security.JwtTokenProvider;
 
 import javax.validation.Valid;
 import java.net.URI;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -50,11 +52,11 @@ public class AuthController {
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-
+        String pass = new String(Base64.getDecoder().decode(loginRequest.getPassword()));
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getUsernameOrEmail(),
-                        loginRequest.getPassword()
+                        pass
                 )
         );
 
@@ -71,7 +73,7 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@RequestBody SignUpRequest signUpRequest) {
+        public ResponseEntity<?> registerUser(@RequestBody SignUpRequest signUpRequest) {
         if(userRepository.existsByUsername(signUpRequest.getUsername())) {
             return new ResponseEntity(new ApiResponse(false, "Username is already taken!"),
                     HttpStatus.BAD_REQUEST);
@@ -86,7 +88,7 @@ public class AuthController {
         User user = new User(signUpRequest.getName(), signUpRequest.getUsername(),
                 signUpRequest.getEmail(), signUpRequest.getPassword());
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPassword(passwordEncoder.encode(new String(Base64.getDecoder().decode(signUpRequest.getPassword()))));
         Role userRole;
         System.out.println(user.getName());
         if(user.getName().equals("admin")) {
